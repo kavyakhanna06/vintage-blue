@@ -1405,8 +1405,8 @@ function render() {
   const url = new URL(location.href);
   const parts = url.pathname.split("/").filter(Boolean);
   let html;
-  if (!parts.length || parts[0] === "dark") html = home();
-  else if (parts[0] === "home2") html = home2();
+  if (parts[0] === "dark") html = home();
+  else if (!parts.length || parts[0] === "home2") html = home2();
   else if (/^about[2-7]$/.test(parts[0] || "")) html = { about2, about3, about4, about5, about6, about7 }[parts[0]]();
   else if (parts[0] === "shop" && (!parts[1] || CATEGORIES.some((c) => c.slug === parts[1])))
     html = shop(parts[1], url.searchParams.get("sort") || "featured", url.searchParams.get("type") || "");
@@ -1420,7 +1420,7 @@ function render() {
 
   app.innerHTML = html;
   document.body.classList.toggle("dark", parts[0] === "dark");
-  const v2 = parts[0] === "home2" || parts[0] === "shop" || /^contact([2-9]|1[01])$/.test(parts[0] || "") || /^(about[2-7]|lookbook([2-9]|10))$/.test(parts[0] || "");
+  const v2 = !parts.length || parts[0] === "home2" || parts[0] === "shop" || /^contact([2-9]|1[01])$/.test(parts[0] || "") || /^(about[2-7]|lookbook([2-9]|10))$/.test(parts[0] || "");
   document.body.classList.toggle("h2", v2);
   document.body.classList.toggle("h2dark", parts[0] === "lookbook9" || parts[0] === "contact11");
   // On the v2 pages the wordmark and About link stay within v2.
