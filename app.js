@@ -1180,6 +1180,222 @@ function product(handle) {
     </section>` : ""}`;
 }
 
+// ---------- Product page options (pdp2–pdp7) — same data, six layouts ----------
+const PDP_OPTS = [2, 3, 4, 5, 6, 7];
+const pdpSwitch = (n, h) => `<nav class="ab-switch" aria-label="Product layouts">${PDP_OPTS.map((k) => `<a href="/pdp${k}/${h}" data-link class="${k === n ? "on" : ""}">Product ${k}</a>`).join("")}</nav>`;
+function pdpData(p) {
+  const cat = CATEGORIES.find((c) => c.slug === p.categories[0]);
+  const colours = products.filter((x) => x.type === p.type && x.categories[0] === p.categories[0]);
+  const related = products.filter((x) => x.handle !== p.handle && x.categories[0] === p.categories[0] && x.type !== p.type).slice(0, 4);
+  const rows = [["Style no.", p.styleNo], ["Fit", p.fit], ["Fabric", p.material], ["Lining", p.lining], ["Colour", colorOf(p)], ["Sizes", p.sizes.length ? `${p.sizes[0]}–${p.sizes[p.sizes.length - 1]}` : ""]].filter(([, v]) => v);
+  const look = LB2.find((L) => L.shop.includes(p.handle));
+  return { cat, colours, related, rows, look };
+}
+const pdpSwatches = (p, d, n) => d.colours.length > 1 ? `<div class="pd-sw">${d.colours.map((x) => `<a href="/pdp${n}/${x.handle}" data-link class="${x.handle === p.handle ? "on" : ""}" title="${esc(colorOf(x))}"><img src="${lbFront(x)}" alt="${esc(colorOf(x))}" /></a>`).join("")}</div>` : "";
+const pdpSizes = (p) => `<div class="pd-sizes" id="sizes">${p.sizes.map((s) => `<button type="button" data-size="${s}">${s}</button>`).join("")}</div>`;
+const pdpAdd = (p, cls = "") => `<button class="pd-add ${cls}" id="addBtn" type="button" data-handle="${p.handle}" ${p.inStock === false ? "disabled" : ""}><span>${p.inStock === false ? "Sold out" : "Add to bag"}</span><span>${inr(p.price)}</span></button><p class="pd-note" id="addNote" aria-live="polite"></p>`;
+const pdpRows = (d) => `<dl class="pd-rows">${d.rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>`;
+const pdpTags = (p) => p.tags?.length ? `<p class="pd-tags">${p.tags.map((t) => `<span>${esc(t)}</span>`).join("")}</p>` : "";
+const pdpShip = `<p class="pd-ship">Free shipping over ₹2,999 · 15-day easy returns</p>`;
+const pdpRelated = (d) => d.related.length ? `<section class="g-sec pd-rel"><div class="g-head rv"><h2 class="g-title">You may also like</h2><a href="/shop/${d.cat?.slug || ""}" data-link>See all</a></div><div class="pd-rel-grid">${d.related.map(uyCard).join("")}</div></section>` : "";
+const pdpLook = (p, d) => {
+  if (!d.look) return "";
+  const L = d.look;
+  return `<section class="g-sec pd-look rv"><div class="pd-look-img">${abImg(ED(L.img), esc(L.name), "", L.pos)}</div><div class="pd-look-txt"><p class="tm-k">Worn in the lookbook — Look ${L.id}</p><h2>${esc(L.name)}</h2><p>${esc(L.line)}</p>${lbList(L)}${lbAdd(L)}</div></section>`;
+};
+const pdpHead = (p, d) => `<div class="pd-head"><p class="pd-k">${esc(d.cat?.label || "")} · ${esc(p.type)}</p><h1 class="pd-name">${esc(p.name.split(" — ")[0])}</h1><p class="pd-col">${esc(colorOf(p))}</p></div>`;
+function pdpGet(handle) { return byHandle.get(handle); }
+
+// 2 — stacked photos left, sticky ruled panel right
+function pdp2(h) {
+  const p = pdpGet(h); if (!p) return notFound(); const d = pdpData(p);
+  return `${pdpSwitch(2, h)}
+    <section class="pd2">
+      <div class="pd2-pics">${p.images.map((src, i) => `<figure><img src="${src}" alt="${esc(p.name)} — view ${i + 1}" ${i ? 'loading="lazy"' : ""} /></figure>`).join("")}</div>
+      <aside class="pd2-info">
+        <div class="pd2-top">${pdpHead(p, d)}<p class="pd-price">${inr(p.price)}</p></div>
+        ${pdpSwatches(p, d, 2)}
+        <div class="pd-lab"><span>Size</span><span>${p.sizes.length} sizes</span></div>${pdpSizes(p)}
+        ${pdpAdd(p)}${pdpShip}
+        <p class="pd-desc">${esc(p.description)}</p>
+        ${pdpRows(d)}${pdpTags(p)}
+      </aside>
+    </section>${pdpLook(p, d)}${pdpRelated(d)}`;
+}
+
+// 3 — ruled grid: photos and spec sheet share one bordered table (like the home page box)
+function pdp3(h) {
+  const p = pdpGet(h); if (!p) return notFound(); const d = pdpData(p);
+  const pics = [...p.images]; while (pics.length < 3) pics.push(pics[0]);
+  return `${pdpSwitch(3, h)}
+    <section class="g-sec pd3">
+      <div class="pd3-box">
+        <figure class="pd3-main"><img src="${pics[0]}" alt="${esc(p.name)}" /></figure>
+        <figure class="pd3-a"><img src="${pics[1]}" alt="" loading="lazy" /></figure>
+        <figure class="pd3-b"><img src="${pics[2]}" alt="" loading="lazy" /></figure>
+        <div class="pd3-info">
+          <div class="pd3-cell pd3-title">${pdpHead(p, d)}</div>
+          <div class="pd3-cell pd3-price"><span>Price</span><b>${inr(p.price)}</b></div>
+          ${d.rows.map(([k, v]) => `<div class="pd3-cell pd3-row"><span>${k}</span><b>${esc(v)}</b></div>`).join("")}
+          ${d.colours.length > 1 ? `<div class="pd3-cell"><span class="pd3-l">Other colours</span>${pdpSwatches(p, d, 3)}</div>` : ""}
+          <div class="pd3-cell"><span class="pd3-l">Size</span>${pdpSizes(p)}</div>
+          <div class="pd3-cell pd3-buy">${pdpAdd(p)}</div>
+        </div>
+      </div>
+      <p class="pd3-desc rv">${esc(p.description)}</p>
+    </section>${pdpLook(p, d)}${pdpRelated(d)}`;
+}
+
+// 4 — giant name across the top, one big photo, details in three columns
+function pdp4(h) {
+  const p = pdpGet(h); if (!p) return notFound(); const d = pdpData(p);
+  return `${pdpSwitch(4, h)}
+    <section class="pd4">
+      <h1 class="pd4-word">${esc(p.type)}</h1>
+      <div class="pd4-stage">
+        <div class="pd4-left"><p class="pd-k">${esc(d.cat?.label || "")} · Style ${esc(p.styleNo)}</p><p class="pd4-col">${esc(colorOf(p))}</p>${pdpSwatches(p, d, 4)}${pdpTags(p)}</div>
+        <div class="pd4-pic" id="pd4pic"><img src="${p.images[0]}" alt="${esc(p.name)}" /></div>
+        <div class="pd4-buy"><p class="pd-price">${inr(p.price)}</p><div class="pd-lab"><span>Size</span><span>${p.sizes.length} sizes</span></div>${pdpSizes(p)}${pdpAdd(p)}${pdpShip}</div>
+      </div>
+      <div class="pd4-thumbs">${p.images.map((src, i) => `<button type="button" data-src="${src}" class="${i ? "" : "on"}"><img src="${src}" alt="View ${i + 1}" loading="lazy" /><span>${String(i + 1).padStart(2, "0")}</span></button>`).join("")}</div>
+      <div class="pd4-cols">
+        <div><p class="tm-k">About it</p><p>${esc(p.description)}</p></div>
+        <div><p class="tm-k">Fabric & fit</p>${pdpRows(d)}</div>
+        <div><p class="tm-k">Delivery</p><p>Free shipping over ₹2,999.<br />15-day easy returns.</p></div>
+      </div>
+    </section>${pdpLook(p, d)}${pdpRelated(d)}`;
+}
+
+// 5 — full-bleed horizontal photo reel with a buy bar pinned underneath
+function pdp5(h) {
+  const p = pdpGet(h); if (!p) return notFound(); const d = pdpData(p);
+  return `${pdpSwitch(5, h)}
+    <section class="pd5">
+      <div class="pd5-reel">${p.images.map((src, i) => `<figure><img src="${src}" alt="${esc(p.name)} — view ${i + 1}" ${i ? 'loading="lazy"' : ""} /><figcaption>${String(i + 1).padStart(2, "0")} / ${String(p.images.length).padStart(2, "0")}</figcaption></figure>`).join("")}</div>
+      <div class="pd5-bar">
+        <div class="pd5-name">${pdpHead(p, d)}</div>
+        <div class="pd5-mid">${pdpSwatches(p, d, 5)}${pdpSizes(p)}</div>
+        <div class="pd5-add">${pdpAdd(p)}</div>
+      </div>
+      <div class="g-sec pd5-more">
+        <p class="pd5-desc rv">${esc(p.description)}</p>
+        <div class="rv">${pdpRows(d)}${pdpTags(p)}${pdpShip}</div>
+      </div>
+    </section>${pdpLook(p, d)}${pdpRelated(d)}`;
+}
+
+// 6 — catalogue page: centred photo, notes left, buy box right, numbered filmstrip
+function pdp6(h) {
+  const p = pdpGet(h); if (!p) return notFound(); const d = pdpData(p);
+  return `${pdpSwitch(6, h)}
+    <section class="pd6">
+      <div class="pd6-page">
+        <p class="pd6-top"><span>Vintage Blue — ${esc(d.cat?.label || "")}</span><span>Style ${esc(p.styleNo)}</span></p>
+        <div class="pd6-grid">
+          <div class="pd6-notes">${pdpHead(p, d)}<p class="pd-desc">${esc(p.description)}</p>${pdpTags(p)}</div>
+          <div class="pd6-pic" id="pd4pic"><img src="${p.images[0]}" alt="${esc(p.name)}" /></div>
+          <div class="pd6-buy"><p class="pd-price">${inr(p.price)}</p>${pdpSwatches(p, d, 6)}<div class="pd-lab"><span>Size</span></div>${pdpSizes(p)}${pdpAdd(p)}${pdpRows(d)}</div>
+        </div>
+        <div class="pd4-thumbs pd6-strip">${p.images.map((src, i) => `<button type="button" data-src="${src}" class="${i ? "" : "on"}"><img src="${src}" alt="View ${i + 1}" loading="lazy" /><span>${String(i + 1).padStart(2, "0")}</span></button>`).join("")}</div>
+      </div>
+    </section>${pdpLook(p, d)}${pdpRelated(d)}`;
+}
+
+// 7 — night: the black grid from the contact page, photos on black
+function pdp7(h) {
+  const p = pdpGet(h); if (!p) return notFound(); const d = pdpData(p);
+  return `${pdpSwitch(7, h)}
+    <section class="pd7">
+      <div class="pd7-pics">${p.images.map((src, i) => `<figure><img src="${src}" alt="${esc(p.name)} — view ${i + 1}" ${i ? 'loading="lazy"' : ""} /></figure>`).join("")}</div>
+      <aside class="pd7-info">
+        <div class="pd7-box">
+          <div class="pd7-cell pd7-title"><span>${esc(d.cat?.label || "")} · Style ${esc(p.styleNo)}</span><h1 class="pd-name">${esc(p.name.split(" — ")[0])}</h1><p class="pd-col">${esc(colorOf(p))} — ${inr(p.price)}</p></div>
+          ${d.colours.length > 1 ? `<div class="pd7-cell"><span>Colour</span>${pdpSwatches(p, d, 7)}</div>` : ""}
+          <div class="pd7-cell"><span>Size</span>${pdpSizes(p)}</div>
+          ${d.rows.filter(([k]) => k !== "Colour" && k !== "Style no.").map(([k, v]) => `<div class="pd7-cell pd7-row"><span>${k}</span><b>${esc(v)}</b></div>`).join("")}
+          ${pdpAdd(p)}
+        </div>
+        <p class="pd-desc">${esc(p.description)}</p>${pdpShip}
+      </aside>
+    </section>${pdpRelated(d)}`;
+}
+
+// ---------- Product page — H&M layout: edge gallery left, sticky buy panel right, carousels below ----------
+function pdpHM(handle) {
+  const p = byHandle.get(handle);
+  if (!p) return notFound();
+  const d = pdpData(p);
+  const name = p.name.split(" — ")[0];
+  // gallery: full, two halves, full… product photos first, then the lookbook look it appears in
+  const pics = p.images.map((src, i) => ({ src, alt: `${p.name} — view ${i + 1}`, prod: true }));
+  if (d.look) [d.look.img, ...(d.look.more || [])].forEach((n) => pics.push({ src: ED(n), alt: `${d.look.name} — lookbook`, prod: false }));
+  const rows = []; let i = 0, full = true;
+  while (i < pics.length) {
+    if (full || pics.length - i === 1) { rows.push([pics[i]]); i += 1; } else { rows.push([pics[i], pics[i + 1]]); i += 2; }
+    full = !full;
+  }
+  const fig = (x, half) => `<figure class="hm-fig${half ? " half" : ""}${x.prod ? " prod" : ""}"><img src="${x.src}" alt="${esc(x.alt)}" ${x === pics[0] ? "" : 'loading="lazy"'} /></figure>`;
+  const acc = (title, body, open) => `<details class="hm-acc"${open ? " open" : ""}><summary>${title}<i aria-hidden="true"></i></summary><div class="hm-acc-b">${body}</div></details>`;
+  const card = (x) => {
+    const sibs = products.filter((y) => y.type === x.type && y.categories[0] === x.categories[0]);
+    return `<a class="hm-card" href="/product/${x.handle}" data-link><span class="hm-card-img"><img src="${lbFront(x)}" alt="${esc(x.name)}" loading="lazy" /></span><span class="hm-card-n">${esc(x.name)}</span><span class="hm-card-p">${inr(x.price)}</span>${sibs.length > 1 ? `<span class="hm-card-c">${sibs.slice(0, 3).map(() => "<i></i>").join("")}${sibs.length > 3 ? `<em>+${sibs.length - 3}</em>` : ""}</span>` : ""}</a>`;
+  };
+  const rail = (title, list) => list.length ? `<section class="hm-rail"><div class="hm-rail-h"><h2>${title}</h2><span><button type="button" data-rail="-1" aria-label="Previous">←</button><button type="button" data-rail="1" aria-label="Next">→</button></span></div><div class="hm-rail-track">${list.map(card).join("")}</div></section>` : "";
+  const lookPieces = d.look ? lbPieces(d.look).filter((x) => x.handle !== p.handle) : [];
+  const otherCats = products.filter((x) => x.categories[0] !== p.categories[0] && !lookPieces.includes(x));
+  const styleWith = [...lookPieces, ...CATEGORIES.map((c) => otherCats.find((x) => x.categories[0] === c.slug)).filter(Boolean)].slice(0, 6);
+  const similar = products.filter((x) => x.handle !== p.handle && x.categories[0] === p.categories[0]).slice(0, 12);
+  const more = products.filter((x) => x.categories[0] !== p.categories[0]).slice(0, 12);
+  return `
+    <section class="hm-pdp">
+      <div class="hm-gal">${rows.map((r) => `<div class="hm-row">${r.map((x) => fig(x, r.length === 2)).join("")}</div>`).join("")}</div>
+      <aside class="hm-panel"><div class="hm-panel-in">
+        <h1 class="hm-name">${esc(name)}</h1>
+        <p class="hm-price">${inr(p.price)}</p>
+        <p class="hm-sub">Free shipping over ₹2,999</p>
+        <p class="hm-lab">Colour: <span>${esc(colorOf(p))}</span></p>
+        <div class="hm-sw">${d.colours.map((x) => `<a href="/product/${x.handle}" data-link class="${x.handle === p.handle ? "on" : ""}" title="${esc(colorOf(x))}"><img src="${lbFront(x)}" alt="${esc(colorOf(x))}" /></a>`).join("")}</div>
+        <div class="hm-sizes" id="sizes">${p.sizes.map((sz) => `<button type="button" data-size="${sz}">${sz}</button>`).join("")}</div>
+        <p class="hm-fit">${esc(p.fit || "")}${p.fit ? " fit" : ""}<span>Sizes ${esc(p.sizes[0] || "")}–${esc(p.sizes[p.sizes.length - 1] || "")}</span></p>
+        <button class="hm-add" id="addBtn" type="button" data-handle="${p.handle}" ${p.inStock === false ? "disabled" : ""}>${p.inStock === false ? "Sold out" : "Add to bag"}</button>
+        <p class="pd-note" id="addNote" aria-live="polite"></p>
+        <p class="hm-store"><span>Style no. ${esc(p.styleNo || "")}</span><span>Cut and sewn in Delhi</span></p>
+        <div class="hm-accs">
+          ${acc("Description & fit", `<p>${esc(p.description)}</p><dl class="pd-rows">${[["Fit", p.fit], ["Sizes", p.sizes.join(", ")], ["Style no.", p.styleNo]].filter(([, v]) => v).map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>${pdpTags(p)}`)}
+          ${acc("Materials", `<dl class="pd-rows">${[["Fabric", p.material], ["Lining", p.lining], ["Colour", colorOf(p)]].filter(([, v]) => v).map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>`)}
+          ${acc("Delivery and payment", `<p>Free shipping on orders over ₹2,999.</p><p>15-day easy returns.</p>`)}
+        </div>
+      </div></aside>
+    </section>
+    ${rail("Style with", styleWith)}
+    ${rail("Similar items", similar)}
+    ${rail("You may also like", more)}
+    <p class="hm-crumb"><a href="/" data-link>Vintage Blue</a> / <a href="/shop/${d.cat?.slug || ""}" data-link>${esc(d.cat?.label || "")}</a> / ${esc(name)}</p>`;
+}
+function bindHM() {
+  // keep the sticky panel reachable when it is taller than the window
+  const panel = document.querySelector(".hm-panel");
+  if (panel) {
+    const fit = () => { panel.style.top = `${Math.min(64, innerHeight - panel.offsetHeight - 16)}px`; };
+    fit(); panel.querySelectorAll("details").forEach((x) => x.addEventListener("toggle", fit));
+    addEventListener("resize", fit);
+  }
+  document.querySelectorAll(".hm-rail").forEach((r) => {
+    const t = r.querySelector(".hm-rail-track");
+    r.querySelectorAll("[data-rail]").forEach((b) => b.addEventListener("click", () => t.scrollBy({ left: Number(b.dataset.rail) * t.clientWidth * 0.75, behavior: "smooth" })));
+  });
+}
+
+function bindPdp() {
+  // thumbnail strip swaps the big photo (options 4 and 6)
+  const pic = document.querySelector("#pd4pic img");
+  document.querySelectorAll(".pd4-thumbs button").forEach((b) => b.addEventListener("click", () => {
+    if (!pic) return;
+    pic.src = b.dataset.src;
+    document.querySelectorAll(".pd4-thumbs button").forEach((x) => x.classList.toggle("on", x === b));
+  }));
+}
+
 // About: the original site's page, polished — same sections, less text, homepage styling.
 function about() {
   const stats = [["2006", "Founded"], ["36 yrs", "Fabric sourcing"], ["8", "States served"], ["100%", "Made in India"]];
@@ -1410,7 +1626,8 @@ function render() {
   else if (/^about[2-7]$/.test(parts[0] || "")) html = { about2, about3, about4, about5, about6, about7 }[parts[0]]();
   else if (parts[0] === "shop" && (!parts[1] || CATEGORIES.some((c) => c.slug === parts[1])))
     html = shop(parts[1], url.searchParams.get("sort") || "featured", url.searchParams.get("type") || "");
-  else if (parts[0] === "product" && parts[1]) html = product(parts[1]);
+  else if (parts[0] === "product" && parts[1]) html = pdpHM(parts[1]);
+  else if (/^pdp[2-7]$/.test(parts[0] || "") && parts[1]) html = { pdp2, pdp3, pdp4, pdp5, pdp6, pdp7 }[parts[0]](parts[1]);
   else if (parts[0] === "about") html = about();
   else if (parts[0] === "contact") html = contact();
   else if (/^contact([2-9]|1[01])$/.test(parts[0] || "")) html = { contact2, contact3, contact4, contact5, contact6, contact7, contact8, contact9, contact10, contact11 }[parts[0]]();
@@ -1420,9 +1637,9 @@ function render() {
 
   app.innerHTML = html;
   document.body.classList.toggle("dark", parts[0] === "dark");
-  const v2 = !parts.length || parts[0] === "home2" || parts[0] === "shop" || /^contact([2-9]|1[01])$/.test(parts[0] || "") || /^(about[2-7]|lookbook([2-9]|10))$/.test(parts[0] || "");
+  const v2 = !parts.length || parts[0] === "product" || /^pdp[2-7]$/.test(parts[0] || "") || parts[0] === "home2" || parts[0] === "shop" || /^contact([2-9]|1[01])$/.test(parts[0] || "") || /^(about[2-7]|lookbook([2-9]|10))$/.test(parts[0] || "");
   document.body.classList.toggle("h2", v2);
-  document.body.classList.toggle("h2dark", parts[0] === "lookbook9" || parts[0] === "contact11");
+  document.body.classList.toggle("h2dark", parts[0] === "lookbook9" || parts[0] === "contact11" || parts[0] === "pdp7");
   // On the v2 pages the wordmark and About link stay within v2.
   document.querySelector(".nav-mark").setAttribute("href", v2 ? "/home2" : "/");
   document.querySelector('.nav-links a[href^="/about"]').setAttribute("href", v2 ? "/about7" : "/about");
@@ -1439,7 +1656,7 @@ function render() {
 }
 
 function titleFor(parts) {
-  if (parts[0] === "product") {
+  if (parts[0] === "product" || /^pdp[2-7]$/.test(parts[0] || "")) {
     const p = byHandle.get(parts[1]);
     if (p) return `${p.name} — Vintage Blue`;
   }
@@ -1524,6 +1741,8 @@ function bindPage() {
     });
   }
 
+  bindPdp();
+  bindHM();
   const sizes = document.getElementById("sizes");
   const add = document.getElementById("addBtn");
   if (sizes && add) {
